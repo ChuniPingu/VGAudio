@@ -127,19 +127,40 @@ public static class Helpers
 
     public static T CreateJaggedArray<T>(params int[] lengths)
     {
-        return (T)InitializeJaggedArray(typeof(T).GetElementType(), 0, lengths);
+        if (lengths is not { Length: 2 })
+        {
+            throw new ArgumentException("Only 2D jagged arrays are supported.", nameof(lengths));
+        }
+
+        if (typeof(T) == typeof(double[][]))
+        {
+            return (T)(object)CreateJaggedArray2D<double>(lengths[0], lengths[1]);
+        }
+
+        if (typeof(T) == typeof(int[][]))
+        {
+            return (T)(object)CreateJaggedArray2D<int>(lengths[0], lengths[1]);
+        }
+
+        if (typeof(T) == typeof(short[][]))
+        {
+            return (T)(object)CreateJaggedArray2D<short>(lengths[0], lengths[1]);
+        }
+
+        if (typeof(T) == typeof(byte[][]))
+        {
+            return (T)(object)CreateJaggedArray2D<byte>(lengths[0], lengths[1]);
+        }
+
+        throw new NotSupportedException($"CreateJaggedArray<{typeof(T)}> is not supported.");
     }
 
-    private static object InitializeJaggedArray(Type type, int index, int[] lengths)
+    private static T[][] CreateJaggedArray2D<T>(int length0, int length1)
     {
-        var array = Array.CreateInstance(type, lengths[index]);
-
-        var elementType = type.GetElementType();
-        if (elementType == null) return array;
-
-        for (var i = 0; i < lengths[index]; i++)
+        var array = new T[length0][];
+        for (var i = 0; i < length0; i++)
         {
-            array.SetValue(InitializeJaggedArray(elementType, index + 1, lengths), i);
+            array[i] = new T[length1];
         }
 
         return array;

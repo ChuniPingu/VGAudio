@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
-using System.Runtime.InteropServices;
 
 namespace VGAudio.Utilities;
 
@@ -67,7 +66,7 @@ public static class ArrayUnpacker
                         return ReadArray(reader, storedType, elementType, length);
                     }
 
-                    var array = Array.CreateInstance(elementType, length);
+                    var array = CreateArray(elementType, length);
 
                     for (var i = 0; i < length; i++)
                     {
@@ -97,7 +96,7 @@ public static class ArrayUnpacker
                         lengths[i] = reader.ReadUInt16();
                     }
 
-                    var array = Array.CreateInstance(elementType, length);
+                    var array = CreateArray(elementType, length);
 
                     for (var i = 0; i < length; i++)
                     {
@@ -116,8 +115,8 @@ public static class ArrayUnpacker
     {
         if (length == ushort.MaxValue) return null;
 
-        var lengthBytes = length * Marshal.SizeOf(storedType);
-        var array = Array.CreateInstance(storedType, length);
+        var lengthBytes = length * SizeOfPrimitive(storedType);
+        var array = CreatePrimitiveArray(storedType, length);
         var bytes = reader.ReadBytes(lengthBytes);
         Buffer.BlockCopy(bytes, 0, array, 0, lengthBytes);
 
@@ -126,7 +125,7 @@ public static class ArrayUnpacker
 
     private static Array CastArray(Array inArray, Type outType)
     {
-        var outArray = Array.CreateInstance(outType, inArray.Length);
+        var outArray = CreatePrimitiveArray(outType, inArray.Length);
 
         for (var i = 0; i < inArray.Length; i++)
         {
@@ -166,13 +165,106 @@ public static class ArrayUnpacker
             return ReadArray(reader, storedType, outType, dimensions[depth]);
         }
 
-        var array = Array.CreateInstance(outType, dimensions[depth]);
+        var array = CreateArray(outType, dimensions[depth]);
+        var elementType = GetArrayElementType(outType);
 
         for (var i = 0; i < dimensions[depth]; i++)
         {
-            array.SetValue(UnpackInternal(outType.GetElementType(), storedType, reader, depth + 1, dimensions), i);
+            array.SetValue(UnpackInternal(elementType, storedType, reader, depth + 1, dimensions), i);
         }
 
         return array;
     }
+
+    private static int SizeOfPrimitive(Type type)
+    {
+        if (type == typeof(byte) || type == typeof(sbyte)) return sizeof(byte);
+        if (type == typeof(char) || type == typeof(short) || type == typeof(ushort)) return sizeof(short);
+        if (type == typeof(int) || type == typeof(uint) || type == typeof(float)) return sizeof(int);
+        if (type == typeof(long) || type == typeof(ulong) || type == typeof(double)) return sizeof(long);
+        throw new NotSupportedException($"Unsupported primitive type '{type}'.");
+    }
+
+    private static Array CreatePrimitiveArray(Type type, int length)
+    {
+        if (type == typeof(byte)) return new byte[length];
+        if (type == typeof(sbyte)) return new sbyte[length];
+        if (type == typeof(char)) return new char[length];
+        if (type == typeof(short)) return new short[length];
+        if (type == typeof(ushort)) return new ushort[length];
+        if (type == typeof(int)) return new int[length];
+        if (type == typeof(uint)) return new uint[length];
+        if (type == typeof(long)) return new long[length];
+        if (type == typeof(ulong)) return new ulong[length];
+        if (type == typeof(float)) return new float[length];
+        if (type == typeof(double)) return new double[length];
+        throw new NotSupportedException($"Unsupported primitive type '{type}'.");
+    }
+
+    private static Array CreateArray(Type type, int length)
+    {
+        if (IsPrimitive(type)) return CreatePrimitiveArray(type, length);
+
+        if (type == typeof(byte[])) return new byte[length][];
+        if (type == typeof(sbyte[])) return new sbyte[length][];
+        if (type == typeof(char[])) return new char[length][];
+        if (type == typeof(short[])) return new short[length][];
+        if (type == typeof(ushort[])) return new ushort[length][];
+        if (type == typeof(int[])) return new int[length][];
+        if (type == typeof(uint[])) return new uint[length][];
+        if (type == typeof(long[])) return new long[length][];
+        if (type == typeof(ulong[])) return new ulong[length][];
+        if (type == typeof(float[])) return new float[length][];
+        if (type == typeof(double[])) return new double[length][];
+
+        if (type == typeof(byte[][])) return new byte[length][][];
+        if (type == typeof(sbyte[][])) return new sbyte[length][][];
+        if (type == typeof(char[][])) return new char[length][][];
+        if (type == typeof(short[][])) return new short[length][][];
+        if (type == typeof(ushort[][])) return new ushort[length][][];
+        if (type == typeof(int[][])) return new int[length][][];
+        if (type == typeof(uint[][])) return new uint[length][][];
+        if (type == typeof(long[][])) return new long[length][][];
+        if (type == typeof(ulong[][])) return new ulong[length][][];
+        if (type == typeof(float[][])) return new float[length][][];
+        if (type == typeof(double[][])) return new double[length][][];
+
+        throw new NotSupportedException($"Unsupported array type '{type}'.");
+    }
+
+    private static Type GetArrayElementType(Type arrayType)
+    {
+        if (arrayType == typeof(byte[])) return typeof(byte);
+        if (arrayType == typeof(sbyte[])) return typeof(sbyte);
+        if (arrayType == typeof(char[])) return typeof(char);
+        if (arrayType == typeof(short[])) return typeof(short);
+        if (arrayType == typeof(ushort[])) return typeof(ushort);
+        if (arrayType == typeof(int[])) return typeof(int);
+        if (arrayType == typeof(uint[])) return typeof(uint);
+        if (arrayType == typeof(long[])) return typeof(long);
+        if (arrayType == typeof(ulong[])) return typeof(ulong);
+        if (arrayType == typeof(float[])) return typeof(float);
+        if (arrayType == typeof(double[])) return typeof(double);
+
+        if (arrayType == typeof(byte[][])) return typeof(byte[]);
+        if (arrayType == typeof(sbyte[][])) return typeof(sbyte[]);
+        if (arrayType == typeof(char[][])) return typeof(char[]);
+        if (arrayType == typeof(short[][])) return typeof(short[]);
+        if (arrayType == typeof(ushort[][])) return typeof(ushort[]);
+        if (arrayType == typeof(int[][])) return typeof(int[]);
+        if (arrayType == typeof(uint[][])) return typeof(uint[]);
+        if (arrayType == typeof(long[][])) return typeof(long[]);
+        if (arrayType == typeof(ulong[][])) return typeof(ulong[]);
+        if (arrayType == typeof(float[][])) return typeof(float[]);
+        if (arrayType == typeof(double[][])) return typeof(double[]);
+
+        throw new NotSupportedException($"Unsupported array type '{arrayType}'.");
+    }
+
+    private static bool IsPrimitive(Type type) =>
+        type == typeof(byte) || type == typeof(sbyte) || type == typeof(char) ||
+        type == typeof(short) || type == typeof(ushort) ||
+        type == typeof(int) || type == typeof(uint) ||
+        type == typeof(long) || type == typeof(ulong) ||
+        type == typeof(float) || type == typeof(double);
 }
