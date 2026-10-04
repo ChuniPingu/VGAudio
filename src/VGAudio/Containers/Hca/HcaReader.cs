@@ -14,6 +14,9 @@ public class HcaReader : AudioReader<HcaReader, HcaStructure, HcaConfiguration>
     /// <summary>If <c>true</c>, decrypts the HCA data if possible.</summary>
     public bool Decrypt { get; set; } = true;
 
+    /// <summary>If <c>true</c>, writes frame CRC mismatch messages to the console.</summary>
+    public bool LogCrcErrors { get; set; } = true;
+
     public CriHcaKey EncryptionKey { get; set; }
 
     private static Crc16 Crc { get; } = new(0x8005);
@@ -119,7 +122,7 @@ public class HcaReader : AudioReader<HcaReader, HcaStructure, HcaConfiguration>
         hca.CalculateHfrValues();
     }
 
-    private static void ReadHcaData(BinaryReader reader, HcaStructure structure)
+    private void ReadHcaData(BinaryReader reader, HcaStructure structure)
     {
         structure.AudioData = new byte[structure.Hca.FrameCount][];
         for (var i = 0; i < structure.Hca.FrameCount; i++)
@@ -129,7 +132,7 @@ public class HcaReader : AudioReader<HcaReader, HcaStructure, HcaConfiguration>
             int crc = Crc.Compute(span);
 
             var expectedCrc = span[^2] << 8 | span[^1];
-            if (crc != expectedCrc)
+            if (LogCrcErrors && crc != expectedCrc)
             {
                 Console.WriteLine($"HCA frame {i} CRC mismatch: expected {expectedCrc:X4}, got {crc:X4}");
             }
